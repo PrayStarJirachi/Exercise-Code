@@ -3,8 +3,10 @@
 #include <cstring>
 #include <algorithm>
 
+#define DB "%.6f"
+
 const int MAXD = 4;
-const int MAXN = 100001;
+const int MAXN = 250001;
 
 struct Matrix{
 	double a[MAXD][MAXD];
@@ -18,7 +20,7 @@ struct Matrix{
 			}
 		return ret;
 	}
-};
+}I;
 
 Matrix getTrans(const double &a, const double &b, const double &c) {
 	Matrix ret;
@@ -35,18 +37,30 @@ Matrix getScale(const double &a, const double &b, const double &c, const double 
 	ret.a[1][0] = 0; ret.a[1][1] = k; ret.a[1][2] = 0; ret.a[1][3] = 0;
 	ret.a[2][0] = 0; ret.a[2][1] = 0; ret.a[2][2] = k; ret.a[2][3] = 0;
 	ret.a[3][0] = 0; ret.a[3][1] = 0; ret.a[3][2] = 0; ret.a[3][3] = 1;
-	return getTrans(a, b, c) * ret * getTrans(-a, -b, -c);
+	return getTrans(-a, -b, -c) * ret * getTrans(a, b, c);
 }
 
-Matrix getRotate(const double &dx, const double &dy, const double &dz, const double &theta) {
+Matrix getRotate(const double &a, const double &b, const double &c, const double &theta) {
 	Matrix ret;
-	return ret;
-}
-
-Matrix getRotate(const double &ax, const double &ay, const double &az, const double &bx, const double &by, const double &bz, const double &theta) {
-	Matrix ret = getTrans(ax, ay, az);
-	ret = ret * getRotate(bx, by, bz, theta);
-	ret = ret * getTrans(-ax, -ay, -az);
+	ret.a[0][0] = a * a * (1 - cos(theta)) + cos(theta);
+	ret.a[0][1] = a * b * (1 - cos(theta)) + c * sin(theta);
+	ret.a[0][2] = a * c * (1 - cos(theta)) - b * sin(theta);
+	ret.a[0][3] = 0;
+	
+	ret.a[1][0] = b * a * (1 - cos(theta)) - c * sin(theta);
+	ret.a[1][1] = b * b * (1 - cos(theta)) + cos(theta);
+	ret.a[1][2] = b * c * (1 - cos(theta)) + a * sin(theta);
+	ret.a[1][3] = 0;
+	
+	ret.a[2][0] = c * a * (1 - cos(theta)) + b * sin(theta);
+	ret.a[2][1] = c * b * (1 - cos(theta)) - a * sin(theta);
+	ret.a[2][2] = c * c * (1 - cos(theta)) + cos(theta);
+	ret.a[2][3] = 0;
+	
+	ret.a[3][0] = 0;
+	ret.a[3][1] = 0;
+	ret.a[3][2] = 0;
+	ret.a[3][3] = 1;
 	return ret;
 }
 
@@ -58,19 +72,27 @@ struct Point{
 		scanf("%lf%lf%lf", &x, &y, &z);
 	}
 	void print() {
-		printf("%.20f %.20f %.20f\n", x, y, z);
+		printf(DB " " DB " " DB "\n", x, y, z);
 	}
 }p[MAXN];
 
 double dist(const Point &a, const Point &b) {
-	return sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
+	return sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) + (a.z - b.z) * (a.z - b.z));
+}
+
+Matrix getRotate(const double &ax, const double &ay, const double &az, const double &bx, const double &by, const double &bz, const double &theta) {
+	double l = dist(Point(0, 0, 0), Point(bx, by, bz));
+	Matrix ret = getTrans(-ax, -ay, -az);
+	ret = ret * getRotate(bx / l, by / l, bz / l, theta);
+	ret = ret * getTrans(ax, ay, az);
+	return ret;
 }
 
 Point operator *(const Point &a, const Matrix &b) {
 	Point ret;
-	ret.x = a.x * b.a[0][0] + a.y * b.a[1][0] + a.z * b.a[2][0];
-	ret.y = a.x * b.a[0][1] + a.y * b.a[1][1] + a.z * b.a[2][1];
-	ret.z = a.x * b.a[0][2] + a.y * b.a[1][2] + a.z * b.a[2][2];
+	ret.x = a.x * b.a[0][0] + a.y * b.a[1][0] + a.z * b.a[2][0] + b.a[3][0];
+	ret.y = a.x * b.a[0][1] + a.y * b.a[1][1] + a.z * b.a[2][1] + b.a[3][1];
+	ret.z = a.x * b.a[0][2] + a.y * b.a[1][2] + a.z * b.a[2][2] + b.a[3][2];
 	return ret;
 }
 
@@ -90,14 +112,14 @@ struct Node{
 	}
 }tree[MAXN * 6];
 
-int n, m;
+int n, m, cs;
 bool v[MAXN * 6];
 double fK[MAXN * 6];
 Matrix fM[MAXN * 6];
 
 void multiply(int n, const double &k, const Matrix &d) {
 	v[n] = true;
-	fK[n] *= k;
+	fK[n] = fK[n] * k;
 	fM[n] = fM[n] * d;
 	tree[n].l = tree[n].l * d;
 	tree[n].r = tree[n].r * d;
@@ -108,6 +130,8 @@ void pushdown(int n) {
 	if (v[n]) {
 		multiply(n << 1, fK[n], fM[n]);
 		multiply(n << 1 ^ 1, fK[n], fM[n]);
+		fK[n] = 1.0;
+		fM[n] = I;
 		v[n] = false;
 	}
 }
@@ -144,6 +168,8 @@ Node query(int n, int l, int r, int x) {
 }
 
 void buildtree(int n, int l, int r) {
+	fK[n] = 1.0;
+	fM[n] = I;
 	if (l == r) {
 		tree[n] = Node(p[l], p[r]);
 		return;
@@ -155,9 +181,14 @@ void buildtree(int n, int l, int r) {
 
 int main() {
 	freopen("I.in", "r", stdin);
+	for (int i = 0; i < 4; i++)
+		for (int j = 0; j < 4; j++)
+			I.a[i][j] = (i == j);
 	while (scanf("%d%d", &n, &m) == 2) {
+		if (n == 0 && m == 0) break;
 		for (int i = 1; i <= n; i++) p[i].read();
 		buildtree(1, 1, n);
+		printf("Case #%d:\n", ++cs);
 		for (int i = 1; i <= m; i++) {
 			char op[20];
 			int l, r, x;
@@ -173,7 +204,7 @@ int main() {
 			}
 			else if (!strcmp(op, "Rotation")) {
 				scanf("%d%d%lf%lf%lf%lf%lf%lf%lf", &l, &r, &ax, &ay, &az, &bx, &by, &bz, &theta);
-				modify(1, 1, n, l, r, k, getRotate(ax, ay, az, bx, by, bz, theta));
+				modify(1, 1, n, l, r, 1.0, getRotate(ax, ay, az, bx, by, bz, theta));
 			}
 			else if (!strcmp(op, "Coordinates")) {
 				scanf("%d", &x);
@@ -183,7 +214,7 @@ int main() {
 			else if (!strcmp(op, "Length")) {
 				scanf("%d%d", &l, &r);
 				Node ret = query(1, 1, n, l, r);
-				printf("%.20f\n", ret.len);
+				printf(DB "\n", ret.len);
 			}
 		}
 	}
