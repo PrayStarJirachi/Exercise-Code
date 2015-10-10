@@ -56,7 +56,7 @@ void modify(int n, int l, int r, int x, int y, const std::pair<int, int> &p) {
 		modify(n << 1, l, l + r >> 1, x, y, p);
 		modify(n << 1 ^ 1, (l + r >> 1) + 1, r, x, y, p);
 	}
-	tree[n] = tree[n << 1] + tree[n << 1 ^ 1];
+	tree[n] = (tree[n << 1] + tree[n << 1 ^ 1]) % mod;
 }
 
 int query(int n, int l, int r, int x) {
