@@ -29,3 +29,11 @@
 
 # Swap Files
 *~
+
+# Input Files
+*.in
+input.txt
+
+# Output Files
+*.out
+output.txt
