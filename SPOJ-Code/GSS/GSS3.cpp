@@ -28,9 +28,6 @@ struct Node{
 		ret.zsum = std::max(ret.zsum, rsum + rhs.lsum);
 		return ret;
 	}
-	void print() {
-		printf(LL " " LL " " LL " " LL "\n", asum, lsum, rsum, zsum);
-	}
 }tree[MAXN * 4];
 
 int n, q, M;
