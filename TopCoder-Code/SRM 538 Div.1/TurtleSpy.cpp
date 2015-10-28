@@ -49,9 +49,9 @@ public:
 		for (int i = 0; i < MAXANGLE; i++) {
 			if (!dp[i]) continue;
 			double now = 0;
-			now += forwardStep * forwardStep;
-			now += backwardStep * backwardStep;
-			now -= 2 * forwardStep * backwardStep * cos(i / 180.0 * pi);
+			now += (long long)forwardStep * forwardStep;
+			now += (long long)backwardStep * backwardStep;
+			now -= 2.0 * forwardStep * backwardStep * cos(i / 180.0 * pi);
 			answer = std::max(answer, sqrt(now));
 		}
 		return answer;
@@ -61,9 +61,7 @@ public:
 std::vector<std::string> vec;
 
 int main() {
-	vec.push_back("forward 100");
-	vec.push_back("backward 100");
-	vec.push_back("left 90");
+	for (int i = 1; i <= 50; i++) vec.push_back("forward 1000");
 	printf("%.10f\n", T.maxDistance(vec));
 	return 0;
 }
