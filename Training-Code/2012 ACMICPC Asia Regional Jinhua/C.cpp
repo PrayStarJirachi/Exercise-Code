@@ -3,39 +3,31 @@
 #include <algorithm>
 
 const int MAXN = 555;
-const int MAXD = 111111;
-const int MAXM = 222222;
-const int MAXQ = 666666;
-const int INF = ~0u >> 2;
+const int MAXD = 2222222;
+const int MAXM = 2222222;
+const int MAXQ = 2222222;
+const int INF = ~0u >> 3;
 const int COST[4][4] = {{0, 0, 1, 1}, {0, 0, 1, 1}, {1, 1, 0, 0}, {1, 1, 0, 0}};
 
 struct Edge{
 	int node, next, dist;
 }e[MAXM];
 
-int n, tot, id[MAXN][MAXN][4], h[MAXD], Q[MAXQ], d[MAXD];
+int n, tot, cnt, id[MAXN][MAXN][4], h[MAXD], Q[MAXQ], d[MAXD], pre[MAXD];
 std::vector<int> vx, vy;
+std::pair<std::pair<int, int>, int> record[MAXD];
 bool go[MAXN][MAXN][4][4], v[MAXD];
 std::pair<int, int> A, B;
 std::pair<std::pair<int, int>, std::pair<int, int> > r[MAXN];
 
 void addedge(int x, int y, int c) {
-	tot++;
-	e[tot].node = y;
-	e[tot].next = h[x];
-	e[tot].dist = c;
-	h[x] = tot;
-	tot++;
-	e[tot].node = x;
-	e[tot].next = h[y];
-	e[tot].dist = c;
-	h[y] = tot;
+	tot++; e[tot] = (Edge){y, h[x], c}; h[x] = tot;
+	tot++; e[tot] = (Edge){x, h[y], c}; h[y] = tot;
 }
 
 int main() {
 	freopen("C.in", "r", stdin);
-	while (true) {
-		scanf("%d%d%d%d", &A.first, &A.second, &B.first, &B.second);
+	while (scanf("%d%d%d%d", &A.first, &A.second, &B.first, &B.second) == 4) {
 		if (A.first == 0 && A.second == 0 && B.first == 0 && B.second == 0) break;
 		scanf("%d", &n);
 		vx.clear();
@@ -46,8 +38,12 @@ int main() {
 		vy.push_back(B.second);
 		for (int p = 1; p <= n; p++) {
 			scanf("%d%d%d%d", &r[p].first.first, &r[p].first.second, &r[p].second.first, &r[p].second.second);
-			if (r[p].first.first > r[p].second.first) std::swap(r[p].first.first, r[p].second.first);
-			if (r[p].first.second > r[p].second.second) std::swap(r[p].first.second, r[p].second.second);
+			if (r[p].first.first > r[p].second.first) {
+				std::swap(r[p].first.first, r[p].second.first);
+			}
+			if (r[p].first.second > r[p].second.second) {
+				std::swap(r[p].first.second, r[p].second.second);
+			}
 			vx.push_back(r[p].first.first);
 			vx.push_back(r[p].second.first);
 			vy.push_back(r[p].first.second);
@@ -57,12 +53,11 @@ int main() {
 		std::sort(vy.begin(), vy.end());
 		vx.erase(std::unique(vx.begin(), vx.end()), vx.end());
 		vy.erase(std::unique(vy.begin(), vy.end()), vy.end());
-		int cnt = 0;
+		cnt = 0;
 		for (int i = 0; i < (int)vx.size(); i++)
 			for (int j = 0; j < (int)vy.size(); j++)
-				for (int k = 0; k < 4; k++) {
+				for (int k = 0; k < 4; k++)
 					id[i][j][k] = ++cnt;
-				}
 		tot = 0;
 		std::fill(h + 1, h + cnt + 1, 0);
 		for (int i = 0; i < (int)vx.size(); i++)
@@ -114,11 +109,6 @@ int main() {
 							if (p != q && p != k && q != k) {
 								go[i][j][p][q] |= go[i][j][p][k] & go[i][j][k][q];
 							}
-				for (int p = 0; p < 4; p++)
-					for (int q = 0; q < 4; q++) {
-						if (!go[i][j][p][q]) continue;
-						addedge(id[i][j][p], id[i][j][q], COST[p][q]);
-					}
 			}
 		for (int i = 0; i < (int)vx.size(); i++)
 			for (int j = 0; j < (int)vy.size(); j++) {
@@ -126,10 +116,15 @@ int main() {
 				if (j > 0) addedge(id[i][j][1], id[i][j - 1][0], 0);
 				if (i + 1 < (int)vx.size()) addedge(id[i][j][2], id[i + 1][j][3], 0);
 				if (i > 0) addedge(id[i][j][3], id[i - 1][j][2], 0);
+				for (int p = 0; p < 4; p++)
+					for (int q = 0; q < 4; q++) {
+						if (!go[i][j][p][q]) continue;
+						addedge(id[i][j][p], id[i][j][q], COST[p][q]);
+					}
 			}
 		std::fill(d + 1, d + cnt + 1, INF);
 		std::fill(v + 1, v + cnt + 1, false);
-		int left = 0, right = 0, *q = Q + 333333;
+		int left = 0, right = 0, *q = Q + 1111111;
 		for (int k = 0; k < 4; k++) {
 			int px = std::lower_bound(vx.begin(), vx.end(), A.first) - vx.begin();
 			int py = std::lower_bound(vy.begin(), vy.end(), A.second) - vy.begin();
@@ -138,17 +133,18 @@ int main() {
 		}
 		while (left < right) {
 			left++;
-			for (int i = h[q[left]]; i; i = e[i].next) {
-				if (v[e[i].node]) continue;
-				if (e[i].dist == 0) {
-					d[e[i].node] = d[q[left]] + e[i].dist;
-					v[q[left--] = e[i].node] = true;
-				}
-				else{
-					d[e[i].node] = d[q[left]] + 1;
-					v[q[++right] = e[i].node] = true;
+			int now = q[left];
+			for (int i = h[now]; i; i = e[i].next) {
+				if (d[e[i].node] > d[now] + e[i].dist) {
+					d[e[i].node] = d[now] + e[i].dist;
+					pre[e[i].node] = now;
+					if (!v[e[i].node]) {
+						if (e[i].dist == 0) v[q[left--] = e[i].node] = true;
+						else v[q[++right] = e[i].node] = true;
+					}
 				}
 			}
+			v[now] = false;
 		}
 		int answer = INF;
 		for (int k = 0; k < 4; k++) {
